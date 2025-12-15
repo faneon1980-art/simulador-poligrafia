@@ -69,7 +69,7 @@ if st.button("Responder"):
         )
 
     st.session_state.tipo_actual = random.choice(tipos)
-    st.experimental_rerun()
+    st.rerun()
 
 st.info(
     f"Puntaje: {st.session_state.puntaje} / {st.session_state.intentos}"
