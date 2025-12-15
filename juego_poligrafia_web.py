@@ -1,151 +1,92 @@
+# juego_poligrafia_web.py
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
-import random
 
-st.set_page_config(page_title="Simulador Integral de Poligrafía", layout="centered")
+st.set_page_config(page_title="Simulador de Poligrafía", layout="wide")
 
-# ---------------------------
-# Control de fases
-# ---------------------------
-if "fase" not in st.session_state:
-    st.session_state.fase = "explicacion"
+# -------------------------------
+# Funciones generadoras de señales
+# -------------------------------
 
-# ---------------------------
-# Generadores fisiológicos
-# ---------------------------
 def generar_eda(evento):
-    x = np.linspace(0, 10, 200)
-    y = 0.3 + np.random.normal(0, 0.02, 200)
+    duracion = 30
+    fs = 20
+    t = np.linspace(0, duracion, duracion * fs)
+    eda = 0.4 + np.random.normal(0, 0.01, len(t))
 
     if evento == "Reacción relevante":
-        y[90:110] += np.linspace(0, 0.6, 20)
-    elif evento == "Ansiedad basal":
-        y += 0.1 * np.sin(3 * x)
-    elif evento == "Artefacto":
-        y += np.random.normal(0, 0.15, 200)
-    elif evento == "Contramedida":
-        y += 0.2 * np.sin(6 * x)
+        latencia = 3 * fs
+        duracion_scr = 10 * fs
+        scr_t = np.arange(duracion_scr)
+        scr = 0.6 * (scr_t / fs) * np.exp(-scr_t / (3 * fs))
+        eda[latencia:latencia + duracion_scr] += scr
 
-    return x, y
+    elif evento == "Ansiedad basal":
+        eda += 0.05 * np.sin(0.3 * t)
+
+    elif evento == "Artefacto":
+        eda += np.random.normal(0, 0.12, len(t))
+
+    elif evento == "Contramedida":
+        eda += 0.15 * np.sin(2 * t)
+
+    return t, eda
 
 def generar_cardio(evento):
-    x = np.linspace(0, 10, 200)
-    y = 70 + np.random.normal(0, 1, 200)
+    duracion = 30
+    fs = 20
+    t = np.linspace(0, duracion, duracion * fs)
+    cardio = 72 + np.random.normal(0, 0.8, len(t))
 
     if evento == "Reacción relevante":
-        y[90:120] += 10
+        cardio += 4 * np.exp(-0.15 * (t - 5)) * (t > 5)
+
     elif evento == "Ansiedad basal":
-        y += 2
+        cardio += 2
+
     elif evento == "Artefacto":
-        y += np.random.normal(0, 4, 200)
+        cardio += np.random.normal(0, 5, len(t))
+
     elif evento == "Contramedida":
-        y += np.sin(8 * x) * 5
+        cardio += 5 * np.sin(3 * t)
 
-    return x, y
+    return t, cardio
 
-# ---------------------------
-# Ejemplos didácticos
-# ---------------------------
-ejemplos = [
-    ("Ansiedad basal",
-     "Microcurvas constantes en EDA, sin picos claros. Cardio estable o levemente elevado."),
-    ("Reacción relevante",
-     "Pico abrupto de EDA asociado temporalmente a la pregunta. Aumento claro del Cardio."),
-    ("Artefacto",
-     "Trazos irregulares y caóticos. No guardan coherencia temporal."),
-    ("Contramedida",
-     "Patrones repetitivos forzados en EDA y oscilaciones rítmicas en Cardio.")
-]
+# -------------------------------
+# Interfaz Streamlit
+# -------------------------------
 
-# =====================================================
-# FASE 1 – EXPLICACIÓN CON GRÁFICOS
-# =====================================================
-if st.session_state.fase == "explicacion":
+st.title("Simulador de Poligrafía")
 
-    st.title("📘 Fundamentos de Reacciones Poligráficas")
-    st.markdown("### Ejemplos gráficos de patrones fisiológicos")
+# Explicación de reacciones
+st.header("Aprende sobre las reacciones")
+st.markdown("""
+- **EDA (Electrodermal Activity / Conductancia de la piel)**: Línea verde.  
+  Reacción relevante: inicia en homeostasis, sube curva hasta un pico y desciende a homeostasis.  
+- **Cardio (Frecuencia cardiaca)**: Línea roja.  
+  Reacción relevante: aumento gradual y sostenido, no brusco.
+""")
 
-    for evento, descripcion in ejemplos:
-        st.subheader(evento)
-
-        x1, eda = generar_eda(evento)
-        x2, cardio = generar_cardio(evento)
-
-        fig, ax = plt.subplots()
-        ax.plot(x1, eda, color="green")
-        ax.set_title("EDA")
-        st.pyplot(fig)
-
-        fig2, ax2 = plt.subplots()
-        ax2.plot(x2, cardio, color="red")
-        ax2.set_title("Cardio")
-        st.pyplot(fig2)
-
-        st.markdown(f"🧠 **Interpretación:** {descripcion}")
-        st.divider()
-
-    if st.button("➡️ Ir a evaluación"):
-        st.session_state.fase = "evaluacion"
-        st.rerun()
-
-# =====================================================
-# FASE 2 – EVALUACIÓN
-# =====================================================
-if st.session_state.fase == "evaluacion":
-
-    eventos = [
-        "Reacción relevante",
-        "Ansiedad basal",
-        "Artefacto",
-        "Contramedida"
-    ]
-
-    if "evento" not in st.session_state:
-        st.session_state.evento = random.choice(eventos)
-
-    evento = st.session_state.evento
-
-    st.title("🧠 Evaluación del Análisis Poligráfico")
-
-    x1, eda = generar_eda(evento)
-    x2, cardio = generar_cardio(evento)
-
-    fig, ax = plt.subplots()
-    ax.plot(x1, eda, color="green")
-    ax.set_title("EDA")
+# Mostrar ejemplo
+st.subheader("Ejemplo de reacciones")
+eventos = ["Ansiedad basal", "Reacción relevante", "Artefacto", "Contramedida"]
+for evento in eventos:
+    t, eda = generar_eda(evento)
+    _, cardio = generar_cardio(evento)
+    fig, ax = plt.subplots(figsize=(8,3))
+    ax.plot(t, eda, color='green', label='EDA')
+    ax.plot(t, cardio, color='red', label='Cardio')
+    ax.set_title(evento)
+    ax.set_xlabel("Tiempo (s)")
+    ax.set_ylabel("Amplitud")
+    ax.legend()
     st.pyplot(fig)
 
-    fig2, ax2 = plt.subplots()
-    ax2.plot(x2, cardio, color="red")
-    ax2.set_title("Cardio")
-    st.pyplot(fig2)
-
-    st.subheader("Análisis del poligrafista")
-
-    causa = st.selectbox(
-        "¿A qué atribuye la reacción?",
-        [
-            "Reacción relevante",
-            "Ansiedad basal",
-            "Artefacto",
-            "Contramedida",
-            "No concluyente"
-        ]
-    )
-
-    justificacion = st.text_area("Justifique técnicamente su análisis")
-
-    if st.button("Evaluar"):
-        if justificacion.strip() == "":
-            st.warning("Debe justificar su respuesta.")
-        else:
-            st.markdown(f"**Evento real:** {evento}")
-            if causa == evento:
-                st.success("✔ Interpretación correcta")
-            else:
-                st.error("✖ Interpretación incorrecta")
-
-    if st.button("🔄 Nuevo caso"):
-        st.session_state.evento = random.choice(eventos)
-        st.rerun()
+st.header("Evaluación")
+opcion = st.selectbox("¿A qué crees que se debe la reacción?", eventos)
+if st.button("Enviar respuesta"):
+    if opcion == "Reacción relevante":
+        st.success("Correcto ✅")
+    else:
+        st.error("Incorrecto ❌")
