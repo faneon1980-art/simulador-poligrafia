@@ -6,6 +6,12 @@ import random
 st.set_page_config(page_title="Simulador Integral de Poligrafía", layout="centered")
 
 # ---------------------------
+# Control de fases
+# ---------------------------
+if "fase" not in st.session_state:
+    st.session_state.fase = "explicacion"
+
+# ---------------------------
 # Generadores fisiológicos
 # ---------------------------
 def generar_eda(evento):
@@ -37,7 +43,7 @@ def generar_cardio(evento):
     return x, y
 
 # ---------------------------
-# Juego
+# Eventos posibles
 # ---------------------------
 eventos = [
     "Reacción relevante",
@@ -53,51 +59,94 @@ if "evento" not in st.session_state:
 
 evento = st.session_state.evento
 
-st.title("🧠 Simulador Integral de Poligrafía")
+# =====================================================
+# FASE 1 – EXPLICACIÓN
+# =====================================================
+if st.session_state.fase == "explicacion":
 
-st.subheader("Observe las señales fisiológicas")
+    st.title("📘 Fundamentos de Reacciones Poligráficas")
 
-x1, eda = generar_eda(evento)
-x2, cardio = generar_cardio(evento)
+    st.markdown("""
+    ### 🔹 Electrodermal (EDA)
+    - Refleja activación del sistema nervioso simpático  
+    - Picos rápidos suelen indicar estímulos significativos  
+    - Microcurvas constantes pueden asociarse a ansiedad basal  
 
-fig, ax = plt.subplots()
-ax.plot(x1, eda)
-ax.set_title("EDA")
-st.pyplot(fig)
+    ### 🔹 Cardio
+    - Cambios en frecuencia y amplitud
+    - Incrementos súbitos → activación emocional
+    - Descensos sostenidos → fatiga o habituación
 
-fig2, ax2 = plt.subplots()
-ax2.plot(x2, cardio)
-ax2.set_title("Cardio (FC)")
-st.pyplot(fig2)
+    ### 🔹 Interpretación conjunta
+    - **EDA + Cardio reactivo** → posible relevancia
+    - **EDA reactiva sin Cardio** → orientadora o ansiedad
+    - **Patrones irregulares** → artefactos o contramedidas
 
-st.subheader("Análisis del examinador")
+    ⚠️ Ninguna señal se interpreta de forma aislada.
+    """
+    )
 
-eda_resp = st.radio("¿Observa reacción EDA?", ["Sí", "No"])
-cardio_resp = st.radio("¿Cómo describe el Cardio?", [
-    "Aumento FC", "Disminución", "Inestable", "Sin cambio"
-])
+    if st.button("➡️ Ir a evaluación"):
+        st.session_state.fase = "evaluacion"
+        st.rerun()
 
-causa = st.selectbox(
-    "¿A qué atribuye la reacción?",
-    [
-        "Reacción relevante",
-        "Ansiedad basal",
-        "Artefacto",
-        "Contramedida",
-        "Respuesta orientadora",
-        "No concluyente"
-    ]
-)
+# =====================================================
+# FASE 2 – EVALUACIÓN
+# =====================================================
+if st.session_state.fase == "evaluacion":
 
-justificacion = st.text_area("Justifique su análisis (obligatorio)")
+    st.title("🧠 Simulador Integral de Poligrafía")
 
-if st.button("Evaluar análisis"):
-    if justificacion.strip() == "":
-        st.warning("Debe justificar su respuesta.")
-    else:
-        st.success("Evaluación completada")
-        st.markdown(f"**Evento real:** {evento}")
-        if causa == evento:
-            st.success("✔ Interpretación correcta")
+    st.subheader("Observe las señales fisiológicas")
+
+    x1, eda = generar_eda(evento)
+    x2, cardio = generar_cardio(evento)
+
+    # --- Gráfica EDA (VERDE)
+    fig, ax = plt.subplots()
+    ax.plot(x1, eda, color="green")
+    ax.set_title("EDA (Actividad Electrodermal)")
+    st.pyplot(fig)
+
+    # --- Gráfica Cardio (ROJO)
+    fig2, ax2 = plt.subplots()
+    ax2.plot(x2, cardio, color="red")
+    ax2.set_title("Cardio (Frecuencia Cardíaca)")
+    st.pyplot(fig2)
+
+    st.subheader("Análisis del poligrafista")
+
+    eda_resp = st.radio("¿Observa reacción EDA?", ["Sí", "No"])
+    cardio_resp = st.radio(
+        "¿Cómo describe el Cardio?",
+        ["Aumento FC", "Disminución", "Inestable", "Sin cambio"]
+    )
+
+    causa = st.selectbox(
+        "¿A qué atribuye la reacción?",
+        [
+            "Reacción relevante",
+            "Ansiedad basal",
+            "Artefacto",
+            "Contramedida",
+            "Respuesta orientadora",
+            "No concluyente"
+        ]
+    )
+
+    justificacion = st.text_area("Justifique técnicamente su análisis (obligatorio)")
+
+    if st.button("Evaluar análisis"):
+        if justificacion.strip() == "":
+            st.warning("Debe justificar su análisis.")
         else:
-            st.error("✖ Interpretación incorrecta")
+            st.success("Evaluación completada")
+            st.markdown(f"**Evento real:** {evento}")
+            if causa == evento:
+                st.success("✔ Interpretación correcta")
+            else:
+                st.error("✖ Interpretación incorrecta")
+
+    if st.button("🔄 Nuevo caso"):
+        st.session_state.evento = random.choice(eventos)
+        st.rerun()
